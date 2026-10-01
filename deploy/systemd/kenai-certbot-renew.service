@@ -1,0 +1,8 @@
+[Unit]
+Description=Renew Kenai API IP certificate
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/kenai-vpn/certbot-venv/bin/certbot renew --cert-name 88.218.94.3 --quiet

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Вход · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="login-scene">
+  <div class="login-brand"><img src="{{ url_for('static', path='kenai-mark.svg') }}" alt="" width="70" height="58"><strong>Kenai VPN</strong></div>
+  <div class="planet" aria-hidden="true"></div>
+  <section class="auth-card login-card">
+    <div class="eyebrow">Административная панель</div><h1>Вход в систему</h1><p class="muted">Введите учётные данные администратора{% if request.app.state.settings.login_totp_required %} и код из приложения-аутентификатора{% endif %}.</p>
+    {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="/login" class="stack">
+      <label><span class="visually-hidden">Логин</span><input name="username" autocomplete="username" required maxlength="80" placeholder="Логин"></label>
+      <label><span class="visually-hidden">Пароль</span><div class="password-field"><input name="password" type="password" autocomplete="current-password" required maxlength="512" placeholder="Пароль" data-password-input><button type="button" data-password-toggle aria-label="Показать пароль">◉</button></div></label>
+      {% if request.app.state.settings.login_totp_required %}<label><span class="visually-hidden">Код TOTP</span><input name="totp_code" inputmode="numeric" autocomplete="one-time-code" required minlength="6" maxlength="8" placeholder="Код TOTP"></label>{% endif %}
+      <button class="button login-submit" type="submit">Войти →</button>
+    </form>
+    <div class="secure-note">♢ Защищённое соединение</div>
+  </section>
+  <div class="login-caption left">БЕЗОПАСНЫЕ<br>СОЕДИНЕНИЯ<br>ДЛЯ БОЛЬШИХ<br>ВОЗМОЖНОСТЕЙ</div>
+  <div class="login-caption right">СВОБОДА.<br>КОНТРОЛЬ.<br>БЕЗОПАСНОСТЬ.<br>ВЕЗДЕ.</div>
+</div>
+{% endblock %}

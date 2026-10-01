@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Подключения AmneziaWG — {{ app_name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ '/legacy' if legacy_mode else '/' }}">← Вернуться к панели</a>
+<div class="page-heading">
+  <div>
+    <div class="eyebrow">AmneziaWG 2.0</div>
+    <h1>Подключённые устройства</h1>
+    <p class="muted">Показаны {{ 'ручные профили' if legacy_mode else 'ключи приложения' }} со свежим AWG handshake. После отключения статус может обновляться до {{ (connected_window_seconds / 60)|round(0)|int }} минут.</p>
+  </div>
+</div>
+
+{% if not runtime_available %}
+  <div class="alert alert-error">Статистика AmneziaWG временно недоступна.</div>
+{% elif connections %}
+  <section class="panel table-wrap">
+    <table>
+      <thead><tr><th>{{ 'Пользователь' if legacy_mode else 'Ключ активации' }}</th><th>Тип доступа</th><th>Устройство</th><th>Последний handshake</th><th>Получено</th><th>Отправлено</th></tr></thead>
+      <tbody>
+      {% for connection in connections %}
+        <tr>
+          <td><a href="/users/{{ connection.user_id }}"><strong>{{ connection.user_name if legacy_mode else activation_keys.get(connection.user_id, 'Ключ недоступен') }}</strong><small>{{ connection.user_slug if legacy_mode else connection.user_name }}</small></a></td>
+          <td><span class="badge">{{ 'Приложение' if connection.is_subscription else 'Ручная выдача' }}</span></td>
+          <td><strong>{{ connection.device_name }}</strong><small>{{ connection.device_slug }}</small></td>
+          <td>{{ connection.last_handshake_at.strftime('%d.%m.%Y %H:%M:%S UTC') }}</td>
+          <td>{{ (connection.received_bytes / 1048576)|round(1) }} МБ</td>
+          <td>{{ (connection.transmitted_bytes / 1048576)|round(1) }} МБ</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% else %}
+  <section class="panel empty"><h2>Сейчас никто не подключён</h2><p>Устройство появится здесь после свежего AmneziaWG handshake.</p></section>
+{% endif %}
+{% endblock %}

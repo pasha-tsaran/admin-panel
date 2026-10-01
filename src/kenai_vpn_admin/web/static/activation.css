@@ -1,0 +1,81 @@
+.activation-card {
+  max-width: 680px;
+  margin: 20px auto;
+  padding: 30px;
+}
+
+.activation-profile {
+  max-width: 760px;
+  padding: 22px;
+  margin-bottom: 22px;
+}
+
+.activation-card h1,
+.activation-profile h2 {
+  margin: 0;
+}
+
+.secret-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.secret-value {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+  font: 700 18px ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .12em;
+}
+
+.secret-value.blurred {
+  filter: blur(5px);
+  user-select: none;
+}
+
+.heading-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.stack select,
+.renewal-form input,
+.renewal-form select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.renewal-form {
+  display: grid;
+  grid-template-columns: 1.2fr .8fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.renewal-form label {
+  display: grid;
+  gap: 6px;
+  font-weight: 650;
+}
+
+@media (max-width: 560px) {
+  .secret-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .secret-value {
+    grid-column: 1 / -1;
+  }
+
+  .renewal-form {
+    grid-template-columns: 1fr;
+  }
+}

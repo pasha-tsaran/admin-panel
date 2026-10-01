@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Журнал действий · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">Аудит</div><h1>Журнал действий</h1><p>Фильтры, период, детали и безопасный CSV без секретных metadata.</p></div></div>
+<section class="metrics-grid">
+  <article class="metric-card"><div class="metric-icon">▧</div><div class="metric-copy"><span class="metric-label">На странице</span><strong class="metric">{{ events|length }}</strong><small>Страница {{ page }}</small></div></article>
+  <article class="metric-card"><div class="metric-icon">♧</div><div class="metric-copy"><span class="metric-label">Администраторы</span><strong class="metric">{{ administrators|length }}</strong><small>Доступны в фильтре</small></div></article>
+  <article class="metric-card violet"><div class="metric-icon">♢</div><div class="metric-copy"><span class="metric-label">Успешные</span><strong class="metric">{{ events|selectattr('outcome', 'eq', 'success')|list|length }}</strong><small>На текущей странице</small></div></article>
+  <article class="metric-card violet"><div class="metric-icon">!</div><div class="metric-copy"><span class="metric-label">Ошибки / отказы</span><strong class="metric">{{ events|rejectattr('outcome', 'eq', 'success')|list|length }}</strong><small>На текущей странице</small></div></article>
+</section>
+<form method="get" action="/audit" class="audit-filters panel">
+  <label>Действие<select name="action"><option value="">Все действия</option>{% for item in actions %}<option value="{{ item }}" {{ 'selected' if filters.action == item else '' }}>{{ item }}</option>{% endfor %}</select></label>
+  <label>Результат<select name="outcome"><option value="">Все</option>{% for item in ['success','denied','failure'] %}<option value="{{ item }}" {{ 'selected' if filters.outcome == item else '' }}>{{ item }}</option>{% endfor %}</select></label>
+  <label>Администратор<select name="administrator_id"><option value="">Все</option>{% for administrator in administrators %}<option value="{{ administrator.id }}" {{ 'selected' if filters.administrator_id == administrator.id else '' }}>{{ administrator.username }}</option>{% endfor %}</select></label>
+  <label>С даты<input type="date" name="date_from" value="{{ filters.date_from }}"></label><label>По дату<input type="date" name="date_to" value="{{ filters.date_to }}"></label>
+  <button class="button" type="submit">Применить</button>
+  <a class="button secondary" href="/audit/export.csv?action={{ filters.action|urlencode }}&outcome={{ filters.outcome|urlencode }}&administrator_id={{ filters.administrator_id|urlencode }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}">⇩ CSV</a>
+</form>
+<section class="panel">
+  <div class="panel-heading"><div><h2>События</h2><span class="muted">Metadata отображаются только в деталях; секретные поля туда не записываются.</span></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Время</th><th>Админ</th><th>Действие</th><th>Цель</th><th>Результат</th><th>Корреляция</th><th>Детали</th></tr></thead><tbody>
+  {% for event in events %}<tr><td>{{ event.occurred_at.strftime('%d.%m.%Y %H:%M:%S') }}</td><td>{{ event.administrator.username if event.administrator else 'система' }}</td><td><code>{{ event.action }}</code></td><td>{{ event.user.slug if event.user else '—' }}{{ ' / ' + event.device.slug if event.device else '' }}</td><td><span class="state {{ event.outcome }}">{{ event.outcome }}</span></td><td><code>{{ event.correlation_id[:8] }}</code></td><td><details><summary class="button small secondary">Открыть</summary><div class="compact-form"><strong>ID события</strong><code>{{ event.id }}</code><p>{{ event.metadata_json }}</p></div></details></td></tr>{% else %}<tr><td colspan="7">Событий по выбранным фильтрам нет.</td></tr>{% endfor %}
+  </tbody></table></div>
+  <nav class="pagination" aria-label="Страницы">{% if page > 1 %}<a href="?action={{ filters.action|urlencode }}&outcome={{ filters.outcome }}&administrator_id={{ filters.administrator_id }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&page={{ page - 1 }}">‹</a>{% endif %}<span class="current">{{ page }}</span>{% if has_next %}<a href="?action={{ filters.action|urlencode }}&outcome={{ filters.outcome }}&administrator_id={{ filters.administrator_id }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&page={{ page + 1 }}">›</a>{% endif %}</nav>
+</section>
+{% endblock %}

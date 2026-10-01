@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ user.display_name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ '/' if user.activation_key_hash else '/legacy' }}">← Все пользователи</a>
+<div class="page-heading">
+  <div><div class="eyebrow">{{ 'Пользователь приложения' if user.activation_key_hash else 'Ручная выдача' }}</div><h1>{{ user.display_name }}</h1><p class="muted">{{ user.comment or 'Без комментария' }}</p></div>
+  <div class="heading-actions">{% if not user.activation_key_hash %}<button class="button" data-dialog-open="create-device">Добавить устройство</button>{% endif %}<details><summary class="button danger">Отозвать всё и удалить</summary><form method="post" action="/users/{{ user.id }}/delete" class="stack"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>Введите DELETE<input name="confirmation" required pattern="DELETE"></label><label>Ваш пароль<input type="password" name="acting_password" required></label><label>Ваш TOTP<input name="acting_totp" required inputmode="numeric"></label><button class="button danger" type="submit">Подтвердить удаление</button></form></details></div>
+</div>
+
+{% if user.activation_key_hash %}
+<section class="panel stack activation-profile">
+  <div><div class="eyebrow">Доступ в приложение</div><h2>Ключ активации</h2></div>
+  <p><strong>Подписка активна до:</strong> {{ user.subscription_expires_at.strftime('%d.%m.%Y %H:%M UTC') if user.subscription_expires_at else 'срок не установлен' }}</p>
+  {% if activation_key %}
+  <div class="secret-row">
+    <input class="secret-value blurred" type="text" value="{{ activation_key }}" readonly data-secret-value>
+    <button class="button secondary" type="button" data-secret-toggle>Показать</button>
+    <button class="button secondary" type="button" data-secret-copy>Скопировать</button>
+  </div>
+  {% else %}
+  <div class="alert alert-info">Для этого пользователя недоступна зашифрованная копия ключа.</div>
+  {% endif %}
+  <p class="muted">При продлении ключ не изменится. Доступные AmneziaWG и VLESS снова начнут работать.</p>
+  <form method="post" action="/users/{{ user.id }}/subscription/renew" class="renewal-form" data-subscription-period>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Новый срок<select name="period_type" required data-period-type><option value="3">3 дня</option><option value="30" selected>30 дней</option><option value="custom_days">Своё количество дней</option><option value="date">До даты</option></select></label>
+    <label data-custom-days hidden>Количество дней<input type="number" name="custom_days" min="1" max="3650" placeholder="Например, 90" disabled></label>
+    <label data-expiry-date hidden>Активна до даты<input type="date" name="expires_on" disabled></label>
+    <button class="button secondary" type="submit">Продлить и включить доступ</button>
+  </form>
+</section>
+{% endif %}
+
+<div class="device-grid">
+{% for device in user.devices %}
+  {% set device_runtime = runtime_by_device.get(device.id) %}
+  <article class="device-card">
+    <div class="device-heading"><div><h2>{{ device.display_name }}</h2><span class="muted">{{ device.slug }}</span></div><span class="badge">{{ device.status }}</span></div>
+    {% for protocol_name, credential, title in [('amneziawg', device.amneziawg, 'AmneziaWG 2.0'), ('vless', device.vless, 'VLESS')] %}
+      <section class="protocol-row">
+        <div><strong>{{ title }}</strong>
+          {% if credential %}<small>{{ credential.tunnel_address if protocol_name == 'amneziawg' else 'REALITY · TCP/443' }}</small>{% elif protocol_name == 'amneziawg' and not amneziawg_configured %}<small>Не настроен</small>{% elif protocol_name == 'vless' and not vless_configured %}<small>Не настроен</small>{% else %}<small>Не выдан</small>{% endif %}
+        </div>
+        {% if credential %}
+          <span class="state {{ credential.status }}">{{ {'active':'Активен','disabled':'Отключён','revoked':'Отозван'}[credential.status] }}</span>
+          {% if credential.status == 'active' %}
+            <a class="button small secondary" href="/devices/{{ device.id }}/qr/{{ protocol_name }}" target="_blank" rel="noreferrer">QR</a>
+            <form method="post" action="/devices/{{ device.id }}/protocol/{{ protocol_name }}/disable" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button small secondary">Отключить</button></form>
+          {% elif credential.status == 'disabled' %}
+            <form method="post" action="/devices/{{ device.id }}/protocol/{{ protocol_name }}/enable" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button small">Включить</button></form>
+          {% endif %}
+          {% if credential.status != 'revoked' %}
+            <details><summary class="button small danger">Отозвать</summary><form method="post" action="/devices/{{ device.id }}/protocol/{{ protocol_name }}/revoke" class="stack"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="confirmation" value="REVOKE"><label>Ваш пароль<input type="password" name="acting_password" required></label><label>Ваш TOTP<input name="acting_totp" required inputmode="numeric"></label><button class="button danger" type="submit">Подтвердить отзыв</button></form></details>
+          {% else %}
+            <form method="post" action="/devices/{{ device.id }}/protocol/{{ protocol_name }}/issue" class="inline-form" data-confirm="Перевыпустить {{ title }} с новыми данными доступа?"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="confirmation" value="ISSUE"><button class="button small" type="submit">Перевыпустить</button></form>
+          {% endif %}
+        {% elif (protocol_name == 'amneziawg' and amneziawg_configured) or (protocol_name == 'vless' and vless_configured) %}
+          <form method="post" action="/devices/{{ device.id }}/protocol/{{ protocol_name }}/issue" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="confirmation" value="ISSUE"><button class="button small" type="submit">Выдать</button></form>
+        {% endif %}
+      </section>
+      {% if credential %}
+        {% set protocol_runtime = device_runtime.amneziawg if device_runtime and protocol_name == 'amneziawg' else (device_runtime.vless if device_runtime else none) %}
+        <div class="runtime-stats">
+          {% if not runtime_available %}
+            <span class="muted">Статистика временно недоступна</span>
+          {% elif protocol_runtime %}
+            <span><strong>{{ 'В сети' if protocol_runtime.active else 'Нет соединения' }}</strong></span>
+            {% if protocol_name == 'amneziawg' %}
+              <span>Получено: {{ (protocol_runtime.received_bytes / 1048576)|round(1) }} МБ</span>
+              <span>Отправлено: {{ (protocol_runtime.transmitted_bytes / 1048576)|round(1) }} МБ</span>
+              <span>Последнее подключение: {{ protocol_runtime.last_seen_at.strftime('%d.%m.%Y %H:%M:%S UTC') if protocol_runtime.last_seen_at else 'ещё не было' }}</span>
+            {% else %}
+              <span>Получено: {{ (protocol_runtime.received_bytes / 1048576)|round(1) }} МБ</span>
+              <span>Отправлено: {{ (protocol_runtime.transmitted_bytes / 1048576)|round(1) }} МБ</span>
+              {% if protocol_runtime.received_bytes == 0 and protocol_runtime.transmitted_bytes == 0 %}<span class="muted">Статистика появится после включения локального Xray Stats API</span>{% endif %}
+            {% endif %}
+          {% else %}
+            <span class="muted">Нет данных runtime</span>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endfor %}
+    {% if (device.amneziawg and device.amneziawg.status != 'revoked') or (device.vless and device.vless.status != 'revoked') %}
+      <form method="post" action="/devices/{{ device.id }}/packages" class="package-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <strong>Выдать доступ</strong>
+        <div class="checkbox-row">
+          {% if device.amneziawg and device.amneziawg.status != 'revoked' %}<label><input type="checkbox" name="amneziawg" value="true" checked> AmneziaWG 2.0</label>{% endif %}
+          {% if device.vless and device.vless.status != 'revoked' %}<label><input type="checkbox" name="vless" value="true" checked> VLESS</label>{% endif %}
+        </div>
+        <button class="button secondary" type="submit">Создать одноразовый пакет</button>
+      </form>
+    {% endif %}
+    <div class="delete-zone">
+      <details><summary class="button small danger">Удалить устройство</summary><form method="post" action="/devices/{{ device.id }}/delete" class="stack"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="confirmation" value="DELETE"><label>Ваш пароль<input type="password" name="acting_password" required></label><label>Ваш TOTP<input name="acting_totp" required inputmode="numeric"></label><button class="button danger" type="submit">Отозвать доступы и удалить</button></form></details>
+    </div>
+  </article>
+{% else %}
+  <div class="empty panel"><h3>Устройств пока нет</h3><p>Добавьте ПК или смартфон и выберите необходимые протоколы.</p></div>
+{% endfor %}
+</div>
+
+{% if not user.activation_key_hash %}<dialog id="create-device">
+  <form method="post" action="/users/{{ user.id }}/devices" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="dialog-heading"><h2>Новое устройство</h2><button type="button" class="icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+    <label>Название<input name="display_name" required maxlength="120" placeholder="Windows-PC"></label>
+    <fieldset><legend>Протоколы</legend><label><input type="checkbox" name="amneziawg" value="true"{% if amneziawg_configured %} checked{% else %} disabled{% endif %}> AmneziaWG 2.0{% if not amneziawg_configured %} (не настроен){% endif %}</label><label><input type="checkbox" name="vless" value="true"{% if vless_configured %} checked{% else %} disabled{% endif %}> VLESS + REALITY{% if not vless_configured %} (не настроен){% endif %}</label></fieldset>
+    <button class="button primary" type="submit">Создать устройство</button>
+  </form>
+</dialog>{% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+[Unit]
+Description=Disable expired Kenai VPN subscriptions
+After=kenai-vpn-helper.service
+Requires=kenai-vpn-helper.service
+
+[Service]
+Type=oneshot
+User=vpnadmin
+Group=kenai-vpn
+EnvironmentFile=/etc/kenai-vpn/web.env
+WorkingDirectory=/opt/kenai-vpn/app
+ExecStart=/opt/kenai-vpn/venv/bin/kenai-admin expire-subscriptions
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/kenai-vpn-admin
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

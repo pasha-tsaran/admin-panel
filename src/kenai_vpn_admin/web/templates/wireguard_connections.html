@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Подключения WireGuard — {{ app_name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="/">← Вернуться к панели</a>
+<div class="page-heading">
+  <div>
+    <div class="eyebrow">WireGuard</div>
+    <h1>Подключённые устройства</h1>
+    <p class="muted">Подключение считается активным, если сервер получил свежий handshake. После отключения статус может обновляться до {{ (connected_window_seconds / 60)|round(0)|int }} минут.</p>
+  </div>
+</div>
+
+{% if not runtime_available %}
+  <div class="alert alert-error">Статистика WireGuard временно недоступна.</div>
+{% elif connections %}
+  <section class="panel table-wrap">
+    <table>
+      <thead><tr><th>Пользователь</th><th>Устройство</th><th>Последний handshake</th><th>Получено</th><th>Отправлено</th></tr></thead>
+      <tbody>
+      {% for connection in connections %}
+        <tr>
+          <td><a href="/users/{{ connection.user_id }}"><strong>{{ connection.user_name }}</strong><small>{{ connection.user_slug }}</small></a></td>
+          <td><strong>{{ connection.device_name }}</strong><small>{{ connection.device_slug }}</small></td>
+          <td>{{ connection.last_handshake_at.strftime('%d.%m.%Y %H:%M:%S UTC') }}</td>
+          <td>{{ (connection.received_bytes / 1048576)|round(1) }} МБ</td>
+          <td>{{ (connection.transmitted_bytes / 1048576)|round(1) }} МБ</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% else %}
+  <section class="panel empty"><h2>Сейчас никто не подключён</h2><p>Когда устройство установит свежий WireGuard handshake, оно появится в этом списке.</p></section>
+{% endif %}
+{% endblock %}

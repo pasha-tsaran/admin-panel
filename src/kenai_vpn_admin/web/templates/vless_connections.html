@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Подключения VLESS — {{ app_name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ '/legacy' if legacy_mode else '/' }}">← Вернуться к панели</a>
+<div class="page-heading">
+  <div>
+    <div class="eyebrow">VLESS / Xray</div>
+    <h1>Подключённые устройства</h1>
+    <p class="muted">Здесь отображаются {{ 'ручные профили' if legacy_mode else 'ключи приложения' }} с активными VLESS-соединениями по данным Xray Stats API.</p>
+  </div>
+</div>
+
+{% if not runtime_available %}
+  <div class="alert alert-error">Статистика VLESS временно недоступна. Проверьте Xray Stats API и helper.</div>
+{% elif devices %}
+  <section class="panel table-wrap">
+    <table>
+      <thead><tr><th>{{ 'Пользователь' if legacy_mode else 'Ключ активации' }}</th><th>Тип доступа</th><th>Устройство</th><th>Подключений</th><th>Получено</th><th>Отправлено</th></tr></thead>
+      <tbody>
+      {% for device in devices %}
+        <tr>
+          <td><a href="/users/{{ device.user_id }}"><strong>{{ device.user_name if legacy_mode else activation_keys.get(device.user_id, 'Ключ недоступен') }}</strong><small>{{ device.user_slug if legacy_mode else device.user_name }}</small></a></td>
+          <td><span class="badge">{{ 'Приложение' if device.is_subscription else 'Ручная выдача' }}</span></td>
+          <td><strong>{{ device.device_name }}</strong><small>{{ device.device_slug }}</small></td>
+          <td><span class="state active">{{ device.current_connections }}</span></td>
+          <td>{{ (device.received_bytes / 1048576)|round(1) }} МБ</td>
+          <td>{{ (device.transmitted_bytes / 1048576)|round(1) }} МБ</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% else %}
+  <section class="panel empty"><h2>Сейчас никто не подключён</h2><p>Устройство появится здесь после установления VLESS-соединения.</p></section>
+{% endif %}
+{% endblock %}

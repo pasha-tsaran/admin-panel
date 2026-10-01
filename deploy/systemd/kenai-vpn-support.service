@@ -1,0 +1,28 @@
+[Unit]
+Description=Kenai VPN Telegram support bridge
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=vpnadmin
+Group=kenai-vpn
+EnvironmentFile=/etc/kenai-vpn/web.env
+WorkingDirectory=/var/lib/kenai-vpn-admin
+ExecStart=/opt/kenai-vpn/venv/bin/python -m kenai_vpn_admin.infrastructure.telegram_support
+Restart=on-failure
+RestartSec=10s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

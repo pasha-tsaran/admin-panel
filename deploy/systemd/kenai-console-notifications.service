@@ -1,0 +1,15 @@
+[Unit]
+Description=Deliver queued Kenai VPN administrative notifications
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=vpnadmin
+Group=kenai-vpn
+EnvironmentFile=/etc/kenai-vpn/web.env
+ExecStart=/opt/kenai-vpn/venv/bin/kenai-console-maintenance send-notifications
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true

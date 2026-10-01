@@ -1,0 +1,10 @@
+{
+  "location_slug": "armenia",
+  "listen_port": 443,
+  "ingress_uuid": "REPLACE_WITH_XRAY_UUID",
+  "ingress_name": "ru-entry-1",
+  "reality_private_key": "REPLACE_WITH_XRAY_X25519_PRIVATE_KEY",
+  "reality_target": "REPLACE_WITH_VALID_EXIT_TARGET:443",
+  "server_names": ["REPLACE_WITH_TARGET_CERTIFICATE_NAME"],
+  "short_ids": ["REPLACE_WITH_RANDOM_HEX"]
+}

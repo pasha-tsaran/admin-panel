@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 58" role="img" aria-labelledby="title">
+  <title id="title">Kenai VPN</title>
+  <defs>
+    <linearGradient id="a" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0ddcff"/><stop offset=".55" stop-color="#1887ff"/><stop offset="1" stop-color="#7556ff"/></linearGradient>
+    <filter id="g"><feGaussianBlur stdDeviation="2.4"/></filter>
+  </defs>
+  <path d="M4 51 24 9l12 21L45 14l23 37-22-17-10 13-11-18z" fill="url(#a)" opacity=".35" filter="url(#g)"/>
+  <path d="M4 51 24 9l12 21L45 14l23 37-22-17-10 13-11-18z" fill="url(#a)"/>
+  <path d="m12 45 12-24 7 13-5-3zm29-8 4-13 13 21-12-11z" fill="#baf5ff" opacity=".72"/>
+</svg>

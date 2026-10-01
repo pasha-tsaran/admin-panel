@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="color-scheme" content="dark">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='runtime.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='activation.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='topology.css') }}">
+  <script src="{{ url_for('static', path='app.js') }}" defer></script>
+</head>
+<body class="{{ 'authenticated' if current else 'anonymous' }}">
+{% if current %}
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="/" aria-label="Kenai VPN — главная">
+      <img src="{{ url_for('static', path='kenai-mark.svg') }}" alt="" width="58" height="48">
+      <span><strong>Kenai VPN</strong><small>Admin</small></span>
+    </a>
+    <nav class="side-nav" aria-label="Основная навигация">
+      {% set active_path = request.url.path %}
+      {% set granted = permissions|default(['users','issuance','servers','audit','administrators','settings','backups','api_tokens','billing']) %}
+      {% if 'users' in granted %}<a class="{{ 'active' if active_path == '/' else '' }}" href="/"><span>⌂</span>Главная</a>{% endif %}
+      {% if 'users' in granted %}<a class="{{ 'active' if active_path.startswith('/users') else '' }}" href="/users"><span>♙</span>Пользователи</a>{% endif %}
+      {% if 'servers' in granted %}<a class="{{ 'active' if active_path.startswith('/topology') else '' }}" href="/topology"><span>▤</span>Серверы</a>{% endif %}
+      {% if 'issuance' in granted %}<a class="{{ 'active' if active_path.startswith('/issuance') or active_path == '/legacy' else '' }}" href="/issuance"><span>⇥</span>Выдача</a>{% endif %}
+      {% if 'administrators' in granted %}<a class="{{ 'active' if active_path.startswith('/administrators') else '' }}" href="/administrators"><span>♧</span>Администраторы</a>{% endif %}
+      {% if 'audit' in granted %}<a class="{{ 'active' if active_path.startswith('/audit') else '' }}" href="/audit"><span>▧</span>Журнал</a>{% endif %}
+      {% if 'settings' in granted or 'backups' in granted or 'api_tokens' in granted %}<a class="{{ 'active' if active_path.startswith('/settings') else '' }}" href="/settings"><span>⚙</span>Настройки</a>{% endif %}
+    </nav>
+    <div class="sidebar-spacer"></div>
+    <div class="system-pill"><i></i><span>Панель доступна<small>Сеанс защищён TOTP</small></span></div>
+    <div class="sidebar-footer">Kenai VPN Control Plane</div>
+  </aside>
+  <header class="topbar">
+    <button class="mobile-menu" type="button" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false">☰<span class="visually-hidden">Меню</span></button>
+    <form class="global-search" action="/users" method="get" role="search">
+      <span>⌕</span><input name="q" type="search" placeholder="Поиск по пользователям, email, ключу…" aria-label="Глобальный поиск">
+    </form>
+    <div class="account-menu">
+      <a class="notification-button" href="/audit" aria-label="Открыть журнал">♧</a>
+      <div class="account-avatar">{{ current.administrator.username[:1]|upper }}</div>
+      <div><strong>{{ current.administrator.username }}</strong><small>{{ current.administrator.role|replace('_', ' ')|title }}</small></div>
+      <form method="post" action="/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="link-button" type="submit">Выйти</button></form>
+    </div>
+  </header>
+{% endif %}
+  <main class="{{ 'workspace' if current else 'login-workspace' }}">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

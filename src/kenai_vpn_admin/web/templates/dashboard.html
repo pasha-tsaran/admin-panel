@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">Панель управления</div><h1>VPN-сервер</h1></div>
+  <button class="button primary" data-dialog-open="create-user">Создать пользователя</button>
+</div>
+
+{% if notice_message %}<div class="alert alert-error" role="alert">{{ notice_message }}</div>{% endif %}
+
+{% if health is not none %}
+<section class="status-grid" aria-label="Состояние сервера">
+  <article class="status-card"><span class="status-dot {{ 'ok' if health.amneziawg.active else 'bad' }}"></span><div><strong>AmneziaWG 2.0</strong><small>{{ 'Работает' if health.amneziawg.active else 'Недоступен' }}</small></div></article>
+  <article class="status-card"><span class="status-dot {{ 'ok' if health.xray.active else 'bad' }}"></span><div><strong>VLESS / Xray</strong><small>{{ 'Работает' if health.xray.active else 'Недоступен' }}</small></div></article>
+  <article class="status-card"><span class="status-dot {{ 'ok' if health.firewall_active else 'bad' }}"></span><div><strong>Firewall</strong><small>{{ 'Работает' if health.firewall_active else 'Недоступен' }}</small></div></article>
+</section>
+
+{% if health.mode == 'mock' %}<div class="alert alert-info">Локальный тестовый режим: реальные AmneziaWG и Xray не изменяются.</div>{% endif %}
+{% else %}
+<div class="alert alert-error" role="alert">Сервис управления VPN недоступен. Состояние VPN и Firewall неизвестно. Панель доступна, но готовность подключения не подтверждена.</div>
+{% endif %}
+
+<section class="overview-grid" aria-label="Пользователи и выданные доступы">
+  {% if runtime_available and runtime_summary %}
+    <article class="status-card"><div class="metric">{{ users|length }}</div><div><strong>Пользователей</strong><small>{{ device_count }} устройств</small></div></article>
+    <article class="insight-card">
+      <span class="insight-label">Выдано доступов</span>
+      <strong class="access-breakdown">{{ runtime_summary.configured_amneziawg }} AWG · {{ runtime_summary.configured_vless }} VLESS</strong>
+      <small>Без учёта отозванных</small>
+    </article>
+  {% else %}
+    <article class="status-card"><div class="metric">{{ users|length }}</div><div><strong>Пользователей</strong><small>{{ device_count }} устройств</small></div></article>
+    <div class="alert alert-error insight-unavailable">Сводная runtime-статистика временно недоступна.</div>
+  {% endif %}
+</section>
+
+{% if runtime_available and runtime_summary %}
+  <section class="traffic-section" aria-label="Трафик по протоколам">
+    <article class="insight-card traffic-card">
+      <span class="insight-label">Трафик</span>
+      <div class="traffic-protocols">
+        <div><small>AmneziaWG 2.0</small><strong>↓ {{ (runtime_summary.amneziawg_received_bytes / 1048576)|round(1) }} МБ · ↑ {{ (runtime_summary.amneziawg_transmitted_bytes / 1048576)|round(1) }} МБ</strong></div>
+        <div><small>VLESS / Xray</small><strong>↓ {{ (runtime_summary.vless_received_bytes / 1048576)|round(1) }} МБ · ↑ {{ (runtime_summary.vless_transmitted_bytes / 1048576)|round(1) }} МБ</strong></div>
+      </div>
+    </article>
+  </section>
+
+  <section class="connection-grid" aria-label="Подключения по протоколам">
+    <a class="insight-card insight-link" href="/connections/amneziawg?source={{ 'manual' if legacy_mode else 'app' }}">
+      <span class="insight-label">Подключения AmneziaWG</span>
+      <strong>Подключено пользователей: {{ runtime_summary.amneziawg_connected_users }}</strong>
+      <small>Активных устройств: {{ runtime_summary.amneziawg_with_handshake }}</small>
+      <small>Открыть список →</small>
+    </a>
+    <a class="insight-card insight-link" href="/connections/vless?source={{ 'manual' if legacy_mode else 'app' }}">
+      <span class="insight-label">Подключения VLESS / Xray</span>
+      <strong>Подключено пользователей: {{ runtime_summary.vless_connected_users }}</strong>
+      <small>Активных устройств: {{ runtime_summary.vless_connected }}</small>
+      <small>Открыть список →</small>
+    </a>
+  </section>
+{% endif %}
+
+<section class="panel">
+  <div class="panel-heading"><h2>{{ 'Ручная выдача' if legacy_mode else 'Пользователи приложения' }}</h2><span class="muted">{{ 'Управление доступом по устройствам' if legacy_mode else 'Вход по ключу активации' }}</span></div>
+  {% if users %}
+    <div class="user-tools" data-user-filters>
+      <label class="search-field">
+        <span class="visually-hidden">Поиск пользователей</span>
+        <input type="search" placeholder="Найти по имени, ID или устройству" data-user-search>
+      </label>
+      <div class="filter-buttons" aria-label="Фильтр по протоколу">
+        <button type="button" class="filter-button active" data-protocol-filter="all">Все</button>
+        <button type="button" class="filter-button" data-protocol-filter="amneziawg">AmneziaWG</button>
+        <button type="button" class="filter-button" data-protocol-filter="vless">VLESS</button>
+      </div>
+    </div>
+    <div class="user-list" data-user-list>
+      {% for user in users %}
+        {% set awg_count = user.devices|selectattr('amneziawg')|selectattr('amneziawg.status', 'ne', 'revoked')|list|length %}
+        {% set vless_count = user.devices|selectattr('vless')|selectattr('vless.status', 'ne', 'revoked')|list|length %}
+        <a class="user-row" href="/users/{{ user.id }}" data-user-row data-search="{{ user.display_name|lower }} {{ user.slug|lower }} {{ user.email or '' }} {{ user.telegram_username or '' }} {{ user.phone_number or '' }} {% for device in user.devices %}{{ device.display_name|lower }} {{ device.slug|lower }} {% endfor %}" data-amneziawg="{{ 'true' if awg_count else 'false' }}" data-vless="{{ 'true' if vless_count else 'false' }}">
+          <div class="avatar">{{ user.display_name[:1]|upper }}</div>
+          <div class="grow"><strong>{{ user.display_name }}</strong><small>{% if legacy_mode %}{{ user.devices|length }} устройств · {{ user.slug }}{% else %}{{ user.email or 'без email' }} · {{ '@' + user.telegram_username if user.telegram_username else 'без Telegram' }} · {{ user.phone_number or 'без телефона' }}{% endif %}</small></div>
+          <div class="protocol-badges">
+            <span class="badge">AWG {{ awg_count }}</span><span class="badge">VLESS {{ vless_count }}</span>
+          </div>
+          <span class="chevron">›</span>
+        </a>
+      {% endfor %}
+      <div class="empty user-filter-empty" data-user-filter-empty hidden><h3>Ничего не найдено</h3><p>Измените запрос или фильтр.</p></div>
+    </div>
+  {% else %}
+    <div class="empty"><h3>Пользователей пока нет</h3><p>{{ 'Создайте первого пользователя, затем добавьте его устройства.' if legacy_mode else 'Создайте пользователя и передайте ему одноразово показанный ключ активации.' }}</p></div>
+  {% endif %}
+</section>
+
+<dialog id="create-user">
+  <form method="post" action="{{ '/users' if legacy_mode else '/subscriptions' }}" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="dialog-heading"><h2>Новый пользователь</h2><button type="button" class="icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+    {% if legacy_mode %}
+    <label>Имя<input name="display_name" required maxlength="120" placeholder="Например, Иван"></label>
+    <fieldset><legend>Выдать сразу</legend><label><input type="checkbox" name="amneziawg" value="true"{% if amneziawg_configured %} checked{% else %} disabled{% endif %}> AmneziaWG 2.0{% if not amneziawg_configured %} (не настроен){% endif %}</label><label><input type="checkbox" name="vless" value="true"{% if vless_configured %} checked{% else %} disabled{% endif %}> VLESS + REALITY{% if not vless_configured %} (не настроен){% endif %}</label></fieldset>
+    <small>Идентификаторы создаются автоматически. После создания на странице пользователя можно скачать пакет или QR-код.</small>
+    {% else %}
+    <label>Ключ активации<input value="Сгенерируется автоматически" disabled></label>
+    <label>Имя<input name="display_name" required maxlength="120" placeholder="Например, Иван"></label>
+    <details class="optional-fields"><summary class="button secondary">Добавить контакты</summary><div class="stack">
+      <label>Email<input type="email" name="email" maxlength="254" placeholder="user@example.com"></label>
+      <label>Никнейм Telegram<input name="telegram_username" maxlength="64" placeholder="username"></label>
+      <label>Номер телефона<input type="tel" name="phone_number" maxlength="32" placeholder="+7 999 000-00-00"></label>
+    </div></details>
+    <div data-subscription-period>
+      <label>Срок подписки<select name="period_type" required data-period-type><option value="3">3 дня</option><option value="30" selected>30 дней</option><option value="custom_days">Своё количество дней</option><option value="date">До даты</option></select></label>
+      <label data-custom-days hidden>Количество дней<input type="number" name="custom_days" min="1" max="3650" placeholder="Например, 90" disabled></label>
+      <label data-expiry-date hidden>Активна до даты<input type="date" name="expires_on" disabled></label>
+    </div>
+    <small>Контакты необязательны. {{ subscription_protocol_names }} будут выданы автоматически.</small>
+    {% endif %}
+    <label>Комментарий<textarea name="comment" maxlength="1000" placeholder="Необязательно"></textarea></label>
+    <button class="button primary" type="submit">Создать пользователя</button>
+  </form>
+</dialog>
+{% endblock %}

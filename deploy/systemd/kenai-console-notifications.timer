@@ -1,0 +1,11 @@
+[Unit]
+Description=Deliver Kenai VPN notifications
+
+[Timer]
+OnCalendar=*:0/1
+Persistent=true
+RandomizedDelaySec=10
+Unit=kenai-console-notifications.service
+
+[Install]
+WantedBy=timers.target

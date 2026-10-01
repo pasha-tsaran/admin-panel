@@ -1,0 +1,61 @@
+name: kenai-vpn-local
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kenai
+      POSTGRES_USER: kenai
+      POSTGRES_PASSWORD: ${KENAI_POSTGRES_PASSWORD:?set KENAI_POSTGRES_PASSWORD in .env.local}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kenai -d kenai"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [control]
+
+  migrate:
+    build: .
+    command: ["alembic", "-c", "alembic.ini", "upgrade", "head"]
+    environment: &admin-environment
+      KENAI_ENV: development
+      KENAI_DATABASE_URL: postgresql+psycopg://kenai:${KENAI_POSTGRES_PASSWORD}@postgres:5432/kenai
+      KENAI_SECRET_KEY: ${KENAI_SECRET_KEY:?set KENAI_SECRET_KEY in .env.local}
+      KENAI_ENCRYPTION_KEY: ${KENAI_ENCRYPTION_KEY:?set KENAI_ENCRYPTION_KEY in .env.local}
+      KENAI_VPN_BACKEND: mock
+      KENAI_SUBSCRIPTION_PROTOCOLS: vless
+      KENAI_COOKIE_SECURE: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks: [control]
+
+  admin:
+    build: .
+    restart: unless-stopped
+    environment: *admin-environment
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [control]
+
+  xray:
+    image: ghcr.io/xtls/xray-core:26.3.27@sha256:592ec4d11f656db95598d01e76dbcc6e002d67360b96a5436500a938230f52c7
+    restart: unless-stopped
+    command: ["run", "-config", "/etc/xray/config.json"]
+    volumes:
+      - ./deploy/local/xray-control-plane.json:/etc/xray/config.json:ro
+    networks: [control]
+
+volumes:
+  postgres-data:
+
+networks:
+  control:
+    driver: bridge

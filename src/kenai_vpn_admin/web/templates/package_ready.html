@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="success-card">
+  <div class="success-icon">✓</div>
+  <div class="eyebrow">Пакет подготовлен</div>
+  <h1>Одноразовая выдача готова</h1>
+  <p>Ссылка действует до {{ expires_at }} и перестанет работать после первого скачивания.</p>
+  <a class="button primary" href="{{ download_url }}">Скачать конфигурации</a>
+  <p class="warning">Не пересылайте эту страницу и не сохраняйте ссылку в общедоступных местах.</p>
+  <a href="/">Вернуться в панель</a>
+</section>
+{% endblock %}

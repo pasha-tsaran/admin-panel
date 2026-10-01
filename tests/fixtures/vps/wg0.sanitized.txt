@@ -1,0 +1,8 @@
+[Interface]
+Address = 10.66.66.1/24
+ListenPort = 51820
+PrivateKey = REDACTED_SERVER_PRIVATE_KEY
+
+[Peer]
+PublicKey = REDACTED_EXISTING_CLIENT_PUBLIC_KEY
+AllowedIPs = 10.66.66.2/32

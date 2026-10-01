@@ -1,0 +1,36 @@
+.stack select {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+  font: inherit;
+}
+
+.state.offline {
+  background: #ffebeb;
+  color: #a12424;
+}
+
+.state.online {
+  background: #e6f7ef;
+  color: #14734a;
+}
+
+.state.degraded {
+  background: #fff4d9;
+  color: #86610b;
+}
+
+.topology-section {
+  margin-bottom: 22px;
+}
+
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+}
+
+.checkbox-label input {
+  width: auto;
+}

@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+.tmp/
+.local/
+.test-tmp/
+.test-tmp*/
+pytest-cache-files-*/
+dist/
+build/
+*.egg-info/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+!.env.local.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# Databases and runtime state
+*.db
+*.sqlite
+*.sqlite3
+data/
+runtime/
+logs/
+*.log
+
+# VPN credentials and provisioning material
+*.conf
+*.uri
+*.qr
+provisioning/
+private-keys/
+client-configs/
+deploy/artifacts/
+incoming/
+*.kvbackup
+backup.key
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+.test-pg-*/

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Ручная выдача · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">Доступы</div><h1>Ручная выдача</h1><p>Создание настоящих AWG/VLESS credentials через типизированный helper.</p></div></div>
+<section class="dashboard-layout">
+  <article class="panel">
+    <div class="panel-heading"><div><h2>Параметры выдачи</h2><span class="muted">Конфигурация будет доступна через одноразовый пакет</span></div></div>
+    <form method="post" action="/issuance" class="stack panel-body">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>Имя пользователя<input name="display_name" required maxlength="120" placeholder="Например, Иван Петров"></label>
+      <fieldset><legend>Протокол</legend><label><input type="checkbox" name="amneziawg" value="true" {{ 'checked' if amneziawg_configured else 'disabled' }}> AmneziaWG 2.0</label><label><input type="checkbox" name="vless" value="true" {{ 'checked' if vless_configured else 'disabled' }}> VLESS + REALITY</label></fieldset>
+      <div class="form-grid"><label>Срок действия<input type="number" name="duration_days" min="1" max="3650" value="30" required><small>Количество дней</small></label><label>Сервер<select name="server"><option value="primary">{{ request.app.state.settings.primary_country_name }} · {{ primary_server or 'адрес не настроен' }}</option></select><small>Показаны только узлы, поддерживаемые helper-ом выдачи</small></label></div>
+      <div class="form-grid"><label>Лимит устройств<input type="number" name="device_limit" min="1" max="1000" value="1" required></label><label>Комментарий<input name="comment" maxlength="1000" placeholder="Виден администраторам"></label></div>
+      <div class="alert alert-info">Секретный материал не попадёт в журнал или список. QR доступен на странице устройства; пакет скачивается один раз.</div>
+      <button class="button" type="submit">◇ Выдать доступ</button>
+    </form>
+  </article>
+  <div class="stack">
+    <article class="panel"><div class="panel-heading"><h2>Предпросмотр</h2><span class="state active">Готов к выдаче</span></div><div class="panel-body stack"><div><small>Протоколы</small><strong>AmneziaWG 2.0 / VLESS + REALITY</strong></div><div><small>Основной сервер</small><strong>{{ request.app.state.settings.primary_country_name }}{% if primary_server %} · {{ primary_server }}{% endif %}</strong></div><div><small>Статус</small><strong>Активируется после успешного ответа helper</strong></div></div></article>
+    <article class="panel"><div class="panel-heading"><h2>Последние выдачи</h2><a href="/users">Все пользователи →</a></div>{% for user in recent %}<a class="user-row" href="/users/{{ user.id }}"><div class="avatar">{{ user.display_name[:1]|upper }}</div><div class="grow"><strong>{{ user.display_name }}</strong><small>{{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</small></div><span class="state {{ user.status }}">{{ user.status }}</span></a>{% else %}<div class="empty">Ручных выдач пока нет.</div>{% endfor %}</article>
+  </div>
+</section>
+{% endblock %}

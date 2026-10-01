@@ -1,0 +1,37 @@
+{
+  "inbounds": [
+    {
+      "listen": "0.0.0.0",
+      "port": 443,
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "00000000-0000-4000-8000-000000000000",
+            "email": "existing-redacted-device",
+            "flow": "xtls-rprx-vision"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "raw",
+        "security": "reality",
+        "realitySettings": {
+          "serverNames": [
+            "mirrors.teamcloud.am"
+          ],
+          "privateKey": "REDACTED_REALITY_PRIVATE_KEY",
+          "shortIds": [
+            "REDACTED_SHORT_ID"
+          ]
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom"
+    }
+  ]
+}

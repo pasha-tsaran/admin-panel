@@ -1,0 +1,37 @@
+[Unit]
+Description=Kenai VPN administration web panel
+After=network-online.target postgresql.service kenai-vpn-helper.service
+Wants=network-online.target
+Requires=kenai-vpn-helper.service
+
+[Service]
+Type=simple
+User=vpnadmin
+Group=kenai-vpn
+EnvironmentFile=/etc/kenai-vpn/web.env
+WorkingDirectory=/var/lib/kenai-vpn-admin
+ExecStart=/opt/kenai-vpn/venv/bin/uvicorn kenai_vpn_admin.main:app --host 127.0.0.1 --port 8443 --workers 1 --ssl-keyfile /etc/kenai-vpn/tls/server.key --ssl-certfile /etc/kenai-vpn/tls/server.crt --no-access-log
+Restart=on-failure
+RestartSec=5s
+StateDirectory=kenai-vpn-admin
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/kenai-vpn-admin
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

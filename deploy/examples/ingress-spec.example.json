@@ -1,0 +1,8 @@
+{
+  "listen_port": 443,
+  "reality_target": "REPLACE_WITH_VALID_RUSSIAN_TARGET:443",
+  "reality_private_key": "REPLACE_WITH_XRAY_X25519_PRIVATE_KEY",
+  "server_names": ["REPLACE_WITH_TARGET_CERTIFICATE_NAME"],
+  "short_ids": ["REPLACE_WITH_RANDOM_HEX"],
+  "inbound_tag": "kenai-client-in"
+}

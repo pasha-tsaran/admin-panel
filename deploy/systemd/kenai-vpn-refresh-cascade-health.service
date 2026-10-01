@@ -1,0 +1,16 @@
+[Unit]
+Description=Refresh Kenai VPN cascade route health
+After=kenai-vpn-helper.service
+
+[Service]
+Type=oneshot
+User=vpnadmin
+Group=kenai-vpn
+EnvironmentFile=/etc/kenai-vpn/web.env
+ExecStart=/opt/kenai-vpn/venv/bin/kenai-admin refresh-cascade-health
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/kenai-vpn-admin /run/kenai-vpn
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

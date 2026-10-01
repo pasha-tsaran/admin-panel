@@ -1,0 +1,16 @@
+[Unit]
+Description=Sync active Kenai VPN devices to Netherlands exit
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/bin/python3 /usr/local/libexec/kenai/sync-direct-exit.py
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/usr/local/etc/xray /etc/kenai-awg31
+PrivateTmp=true
+TimeoutStartSec=45

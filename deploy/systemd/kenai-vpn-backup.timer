@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Kenai VPN encrypted backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=15m
+Persistent=true
+Unit=kenai-vpn-backup.service
+
+[Install]
+WantedBy=timers.target

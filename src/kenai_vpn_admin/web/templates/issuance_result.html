@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Доступ выдан · {{ app_name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="/issuance">← Вернуться к выдаче</a>
+<section class="panel panel-body stack">
+  <div class="success-icon">✓</div><div class="eyebrow">Доступ создан</div><h1>{{ user.display_name }}</h1>
+  <div class="alert alert-info">Credentials зарегистрированы helper-ом. Ссылка действует до {{ expires_at.strftime('%d.%m.%Y %H:%M UTC') }} и будет уничтожена после первого скачивания.</div>
+  <div class="form-grid"><div><small>Протоколы</small><div class="protocol-badges">{% for protocol in protocols %}<span class="badge">{{ protocol.value }}</span>{% endfor %}</div></div><div><small>Устройство</small><strong>{{ device.display_name }}</strong></div></div>
+  <div class="heading-actions"><a class="button" href="{{ download_url }}">⇩ Скачать конфигурации</a>{% for protocol in protocols %}<a class="button secondary" href="/devices/{{ device.id }}/qr/{{ protocol.value }}">QR {{ protocol.value }}</a>{% endfor %}<a class="button secondary" href="/users/{{ user.id }}">Открыть профиль</a></div>
+  <p class="warning">Полные конфигурации показываются только в этом provisioning-потоке. Не сохраняйте ссылку в общедоступных местах.</p>
+</section>
+{% endblock %}

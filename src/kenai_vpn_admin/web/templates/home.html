@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Главная · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">Панель управления</div><h1>Добро пожаловать в Kenai VPN</h1><p>Реальное состояние пользователей, серверов и административных действий.</p></div>
+  <div class="heading-actions"><a class="button secondary" href="/issuance">Ручная выдача</a><button class="button" type="button" data-dialog-open="create-user">＋ Создать пользователя</button></div>
+</div>
+
+<section class="metrics-grid" aria-label="Ключевые показатели">
+  <article class="metric-card"><div class="metric-icon">♙</div><div class="metric-copy"><span class="metric-label">Пользователи</span><strong class="metric">{{ summary.users }}</strong><small>Активных подписок: {{ summary.active_users }}</small></div></article>
+  <article class="metric-card"><div class="metric-icon">▤</div><div class="metric-copy"><span class="metric-label">Серверы</span><strong class="metric">{{ nodes|length + (1 if request.app.state.settings.primary_address else 0) }}</strong><small>{{ 'Helper отвечает' if health else 'Состояние недоступно' }}</small></div></article>
+  <article class="metric-card violet"><div class="metric-icon">⇅</div><div class="metric-copy"><span class="metric-label">Общий трафик</span>{% if summary.latest_metric and summary.latest_metric.received_bytes is not none and summary.latest_metric.transmitted_bytes is not none %}<strong class="metric">{{ ((summary.latest_metric.received_bytes + summary.latest_metric.transmitted_bytes) / 1048576)|round(1) }} МБ</strong><small>Последний сбор {{ summary.latest_metric.captured_at.strftime('%H:%M') }}</small>{% else %}<strong class="metric">нет данных</strong><small>Сбор выполняется каждые 5 минут</small>{% endif %}</div></article>
+  <article class="metric-card violet"><div class="metric-icon">◇</div><div class="metric-copy"><span class="metric-label">Активные сессии</span><strong class="metric">{{ summary.active_sessions }}</strong><small>Событий за 24 ч: {{ summary.audit_events_24h }}</small></div></article>
+</section>
+{% if runtime_summary %}<section class="two-column">
+  <a class="insight-card" href="/connections/amneziawg?source=app"><strong>Подключено пользователей: {{ runtime_summary.amneziawg_connected_users }}</strong><small>AmneziaWG · активных устройств: {{ runtime_summary.amneziawg_with_handshake }}</small></a>
+  <a class="insight-card" href="/connections/vless?source=app"><strong>Подключено пользователей: {{ runtime_summary.vless_connected_users }}</strong><small>VLESS / Xray · активных устройств: {{ runtime_summary.vless_connected }}</small></a>
+</section>{% endif %}
+
+<section class="dashboard-layout">
+  <article class="panel chart-panel">
+    <div class="panel-heading"><div><h2>Трафик VPN</h2><span class="muted">Сохранённые точки за 24 часа</span></div><span class="badge">{{ metrics|length }} точек</span></div>
+    {% if metrics %}
+      <div class="table-wrap"><table><thead><tr><th>Время</th><th>Скачать</th><th>Загрузить</th><th>Подключения</th><th>Health</th></tr></thead><tbody>
+      {% for metric in metrics[-12:] %}<tr><td>{{ metric.captured_at.strftime('%d.%m %H:%M') }}</td><td>{{ (metric.received_bytes / 1048576)|round(1) if metric.received_bytes is not none else 'нет данных' }}{% if metric.received_bytes is not none %} МБ{% endif %}</td><td>{{ (metric.transmitted_bytes / 1048576)|round(1) if metric.transmitted_bytes is not none else 'нет данных' }}{% if metric.transmitted_bytes is not none %} МБ{% endif %}</td><td>{{ metric.current_connections if metric.current_connections is not none else 'нет данных' }}</td><td><span class="state {{ metric.health_status or 'offline' }}">{{ metric.health_status or 'нет данных' }}</span></td></tr>{% endfor %}
+      </tbody></table></div>
+    {% else %}<div class="chart-empty"><div><strong>Нет сохранённых метрик</strong><p>После включения `kenai-console-metrics.timer` здесь появится история, собранная helper-ом.</p></div></div>{% endif %}
+  </article>
+  <article class="panel">
+    <div class="panel-heading"><h2>Состояние сервисов</h2>{% if health %}<span class="state {{ 'online' if health.firewall_active and health.amneziawg.active and health.xray.active else 'degraded' }}">{{ 'Все работают' if health.firewall_active and health.amneziawg.active and health.xray.active else 'Требует внимания' }}</span>{% else %}<span class="state offline">нет данных</span>{% endif %}</div>
+    <div class="health-list">
+      <div class="health-row"><span class="status-dot {{ 'ok' if health and health.amneziawg.active else 'bad' }}"></span><strong>AmneziaWG 2.0</strong><small>{{ 'Работает' if health and health.amneziawg.active else 'нет данных' }}</small></div>
+      <div class="health-row"><span class="status-dot {{ 'ok' if health and health.xray.active else 'bad' }}"></span><strong>VLESS / Xray</strong><small>{{ 'Работает' if health and health.xray.active else 'нет данных' }}</small></div>
+      <div class="health-row"><span class="status-dot {{ 'ok' if health and health.firewall_active else 'bad' }}"></span><strong>Firewall</strong><small>{{ 'Работает' if health and health.firewall_active else 'нет данных' }}</small></div>
+    </div>
+  </article>
+</section>
+
+<section class="two-column">
+  <article class="panel">
+    <div class="panel-heading"><h2>Последние пользователи</h2><a href="/users">Все пользователи →</a></div>
+    {% for user in latest_users %}<a class="user-row" href="/users/{{ user.id }}"><div class="avatar">{{ user.display_name[:1]|upper }}</div><div class="grow"><strong>{{ user.display_name }}</strong><small>{{ user.email or user.telegram_username or user.phone_number or user.slug }}</small></div><span class="state {{ user.status }}">{{ user.status }}</span></a>{% else %}<div class="empty">Пользователей пока нет.</div>{% endfor %}
+  </article>
+  <article class="panel">
+    <div class="panel-heading"><h2>Последние события</h2><a href="/audit">Весь журнал →</a></div>
+    <div class="table-wrap"><table><thead><tr><th>Время</th><th>Действие</th><th>Админ</th></tr></thead><tbody>{% for event in events %}<tr><td>{{ event.occurred_at.strftime('%H:%M') }}</td><td>{{ event.action }}</td><td>{{ event.administrator.username if event.administrator else 'система' }}</td></tr>{% else %}<tr><td colspan="3">Событий пока нет.</td></tr>{% endfor %}</tbody></table></div>
+  </article>
+</section>
+
+<dialog id="create-user">
+  <form method="post" action="/subscriptions" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="dialog-heading"><div><div class="eyebrow">Новый пользователь</div><h2>Создать подписку</h2></div><button type="button" class="icon-button" data-dialog-close aria-label="Закрыть">×</button></div>
+    <label>Имя пользователя<input name="display_name" required maxlength="120" placeholder="Например, Иван"></label>
+    <div class="form-grid"><label>Email<input type="email" name="email" maxlength="254" placeholder="user@example.com"></label><label>Telegram<input name="telegram_username" maxlength="64" placeholder="username"></label></div>
+    <label>Телефон<input type="tel" name="phone_number" maxlength="32" placeholder="+7 999 000-00-00"></label>
+    <div data-subscription-period><div class="form-grid"><label>Срок подписки<select name="period_type" required data-period-type><option value="3">3 дня</option><option value="30" selected>30 дней</option><option value="custom_days">Своё количество дней</option><option value="date">До даты</option></select></label><label>Лимит устройств<input type="number" name="device_limit" min="1" max="32" value="1"></label></div><label data-custom-days hidden>Количество дней<input type="number" name="custom_days" min="1" max="3650" disabled></label><label data-expiry-date hidden>Активна до даты<input type="date" name="expires_on" disabled></label></div>
+    <fieldset><legend>Протоколы новой подписки</legend><label><input type="checkbox" checked disabled> AmneziaWG 2.0</label><label><input type="checkbox" checked disabled> VLESS + REALITY</label></fieldset>
+    <label>Комментарий<textarea name="comment" maxlength="1000" placeholder="Необязательно"></textarea></label>
+    <button class="button" type="submit">＋ Создать пользователя</button>
+  </form>
+</dialog>
+{% endblock %}

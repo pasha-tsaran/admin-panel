@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Настройки · {{ app_name }}{% endblock %}
+{% block content %}
+{% set granted = permissions|default([]) %}
+{% set default_section = 'general' if 'settings' in granted else ('backups' if 'backups' in granted else ('api' if 'api_tokens' in granted else 'billing')) %}
+<div class="page-heading"><div><div class="eyebrow">Конфигурация</div><h1>Настройки</h1><p>Политики, интеграции, backup, тарифы и API-доступ.</p></div></div>
+{% if request.query_params.get('notice') %}<div class="alert alert-info">Изменение сохранено: {{ request.query_params.get('notice') }}.</div>{% endif %}
+{% if one_time_token %}<div class="alert alert-info"><strong>Новый API-токен показан один раз.</strong><div class="secret-row"><input class="secret-value blurred" value="{{ one_time_token }}" readonly data-secret-value><button class="button secondary" type="button" data-secret-toggle>Показать</button><button class="button secondary" type="button" data-secret-copy>Скопировать</button></div></div>{% endif %}
+<div class="settings-layout" data-settings-tabs>
+  <nav class="panel settings-nav" aria-label="Разделы настроек">
+    {% if 'settings' in granted %}
+    <button class="{{ 'active' if default_section == 'general' else '' }}" type="button" data-settings-tab="general">⚙ Основные</button>
+    <button type="button" data-settings-tab="security">♢ Безопасность</button>
+    <button type="button" data-settings-tab="telegram">♧ Telegram</button>
+    {% endif %}
+    {% if 'billing' in granted %}
+    <button type="button" data-settings-tab="integrations">⌁ Интеграции</button>
+    <button type="button" data-settings-tab="billing">₽ Тарифы</button>
+    {% endif %}
+    {% if 'backups' in granted %}<button class="{{ 'active' if default_section == 'backups' else '' }}" type="button" data-settings-tab="backups">▣ Резервные копии</button>{% endif %}
+    {% if 'api_tokens' in granted %}<button class="{{ 'active' if default_section == 'api' else '' }}" type="button" data-settings-tab="api">&lt;/&gt; API</button>{% endif %}
+  </nav>
+  <section class="panel">
+    {% if 'settings' in granted %}
+    <div class="settings-pane {{ 'active' if default_section == 'general' else '' }}" data-settings-pane="general">
+      <h2>Основные настройки</h2><p class="muted">Параметры интерфейса и административной политики. Они не изменяют VPN-конфигурацию.</p>
+      {% set general = settings.get('general', {}) %}
+      <form method="post" action="/settings/general" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-grid"><label>Название системы<input name="system_name" value="{{ general.get('system_name', 'Kenai VPN') }}" required maxlength="120"></label><label>Часовой пояс<input name="timezone" value="{{ general.get('timezone', 'Europe/Moscow') }}" maxlength="64"></label></div>
+        <label>Период неактивности (минут)<input type="number" name="inactivity_minutes" min="5" max="1440" value="{{ general.get('inactivity_minutes', 30) }}"></label>
+        <button class="button" type="submit">✓ Сохранить изменения</button>
+      </form>
+    </div>
+    <div class="settings-pane" data-settings-pane="security">
+      <h2>Безопасность</h2><div class="settings-grid">
+        <article class="panel settings-card"><h3>Аутентификация</h3><p>Пароли Argon2id, обязательный TOTP, server-side sessions и CSRF.</p><p class="state active">Включено</p></article>
+        <article class="panel settings-card"><h3>Сетевой периметр</h3><p>Production-панель должна оставаться на loopback и открываться через SSH tunnel.</p><p class="state active">Политика активна</p></article>
+        <article class="panel settings-card"><h3>Секреты</h3><p>VPN material зашифрован; токены в логах и обычных списках не отображаются.</p></article>
+        <article class="panel settings-card"><h3>Права и сессии</h3><p>Роли, разрешения, TOTP и отзыв активных сессий находятся на странице «Администраторы».</p><a class="button secondary" href="/administrators">Открыть администраторов</a></article>
+      </div>
+    </div>
+    <div class="settings-pane" data-settings-pane="telegram">
+      <h2>Telegram-уведомления</h2><p class="muted">Bot token читается только из `KENAI_NOTIFICATION_TELEGRAM_BOT_TOKEN` и никогда не сохраняется в БД.</p>
+      <div class="alert {{ 'alert-info' if telegram_configured else 'alert-error' }}">{{ 'Bot token настроен в окружении.' if telegram_configured else 'Bot token не настроен. Доставка останется в очереди.' }}</div>
+      <form method="post" action="/settings/telegram/recipients" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><div class="form-grid"><label>Название получателя<input name="label" required maxlength="120" placeholder="Дежурный администратор"></label><label>Chat ID<input type="number" name="chat_id" required></label></div>
+        <fieldset><legend>Категории</legend>{% for category in categories %}<label><input type="checkbox" name="categories" value="{{ category }}"> {{ category }}</label>{% endfor %}</fieldset>
+        <div class="heading-actions"><button class="button" type="submit">Сохранить получателя</button></div>
+      </form>
+      <div class="table-wrap"><table><thead><tr><th>Получатель</th><th>Chat ID</th><th>Категории</th><th>Статус</th></tr></thead><tbody>{% for item in recipients %}<tr><td>{{ item.label }}</td><td>{{ item.chat_id }}</td><td>{{ item.categories_json|join(', ') }}</td><td><span class="state {{ 'active' if item.is_active else 'disabled' }}">{{ 'активен' if item.is_active else 'выключен' }}</span></td></tr>{% else %}<tr><td colspan="4">Получатели не настроены.</td></tr>{% endfor %}</tbody></table></div>
+      <form method="post" action="/settings/telegram/test"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button secondary" type="submit">Отправить тестовое уведомление</button></form>
+      <h3>Журнал доставки</h3><div class="table-wrap"><table><thead><tr><th>Время</th><th>Категория</th><th>Статус</th><th>Попытки</th><th>Ошибка</th></tr></thead><tbody>{% for item in deliveries %}<tr><td>{{ item.created_at.strftime('%d.%m %H:%M') }}</td><td>{{ item.category }}</td><td><span class="state {{ item.status }}">{{ item.status }}</span></td><td>{{ item.attempts }}</td><td>{{ item.error_code or '—' }}</td></tr>{% else %}<tr><td colspan="5">Отправок пока нет.</td></tr>{% endfor %}</tbody></table></div>
+    </div>
+    {% endif %}
+    {% if 'billing' in granted %}
+    <div class="settings-pane" data-settings-pane="integrations"><h2>Интеграции</h2><div class="alert alert-info">Платёжный провайдер не подключён. Автоматические платежи и webhook не создаются; подписки подтверждаются администратором вручную.</div><article class="panel settings-card"><h3>Будущий payment adapter</h3><p>Граница подготовлена через тариф, подписку и неизменяемую историю событий. Конкретный сервис не выбран.</p><span class="state disabled">Не подключён</span></article></div>
+    {% endif %}
+    {% if 'backups' in granted %}<div class="settings-pane {{ 'active' if default_section == 'backups' else '' }}" data-settings-pane="backups"><h2>Резервные копии</h2><div class="alert alert-info">Backup выполняет только root-only команда `kenai-backup` и systemd timer. Web-процесс не получает ключ шифрования и не может подменить пути.</div><div class="settings-grid"><article class="panel settings-card"><h3>Шифрование</h3><p>AES-256-GCM, отдельный offline key, manifest и SHA-256 для каждого объекта.</p></article><article class="panel settings-card"><h3>Production status</h3><p>Статус последнего backup не поступал в БД.</p><span class="state disabled">нет данных</span></article><article class="panel settings-card"><h3>Rollback</h3><p>Восстановление выполняется только в новую staging-директорию после проверки архива.</p></article></div></div>{% endif %}
+    {% if 'api_tokens' in granted %}<div class="settings-pane {{ 'active' if default_section == 'api' else '' }}" data-settings-pane="api">
+      <h2>API-токены</h2><p class="muted">Plaintext отображается один раз. В БД остаётся только hash и безопасный префикс.</p>
+      <form method="post" action="/settings/api-tokens" class="stack"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><div class="form-grid"><label>Название<input name="name" required maxlength="120"></label><label>Срок, дней<input type="number" name="expires_in_days" min="1" max="3650" placeholder="Без срока"></label></div><fieldset><legend>Разрешения</legend>{% for permission in all_permissions %}<label><input type="checkbox" name="permissions" value="{{ permission }}"> {{ permission }}</label>{% endfor %}</fieldset><button class="button" type="submit">Создать токен</button></form>
+      <div class="table-wrap"><table><thead><tr><th>Название</th><th>Префикс</th><th>Права</th><th>Истекает</th><th>Статус</th><th>Отозвать</th></tr></thead><tbody>{% for token in api_tokens %}<tr><td>{{ token.name }}</td><td><code>{{ token.token_prefix }}…</code></td><td>{{ token.permissions_json|join(', ') }}</td><td>{{ token.expires_at.strftime('%d.%m.%Y') if token.expires_at else 'без срока' }}</td><td><span class="state {{ 'revoked' if token.revoked_at else 'active' }}">{{ 'отозван' if token.revoked_at else 'активен' }}</span></td><td>{% if not token.revoked_at %}<details><summary class="button small danger">Отозвать</summary><form method="post" action="/settings/api-tokens/{{ token.id }}/revoke" class="stack"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>Ваш пароль<input type="password" name="acting_password" required></label><label>TOTP<input name="acting_totp" required inputmode="numeric"></label><button class="button danger" type="submit">Подтвердить отзыв</button></form></details>{% endif %}</td></tr>{% else %}<tr><td colspan="6">Токенов пока нет.</td></tr>{% endfor %}</tbody></table></div>
+    </div>
+    {% endif %}
+    {% if 'billing' in granted %}<div class="settings-pane {{ 'active' if default_section == 'billing' else '' }}" data-settings-pane="billing">
+      <h2>Тарифы и подписки</h2><div class="alert alert-info">Провайдер оплаты отсутствует. Любой активный статус означает только ручное подтверждение администратором.</div>
+      <form method="post" action="/settings/billing/plans" class="stack"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><div class="form-grid"><label>ID тарифа<input name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="standard-30"></label><label>Название<input name="display_name" required maxlength="120"></label><label>Срок, дней<input type="number" name="duration_days" min="1" max="3650" value="30" required></label><label>Цена в копейках<input type="number" name="price_minor" min="0" value="0" required></label><label>Валюта<input name="currency" value="RUB" minlength="3" maxlength="3"></label><label>Лимит устройств<input type="number" name="device_limit" min="1" max="1000" value="1"></label></div><button class="button" type="submit">Создать тариф</button></form>
+      <div class="table-wrap"><table><thead><tr><th>Тариф</th><th>Срок</th><th>Цена</th><th>Устройства</th><th>Статус</th></tr></thead><tbody>{% for plan in plans %}<tr><td>{{ plan.display_name }}</td><td>{{ plan.duration_days }} дн.</td><td>{{ '%.2f'|format(plan.price_minor / 100) }} {{ plan.currency }}</td><td>{{ plan.device_limit }}</td><td><span class="state {{ 'active' if plan.is_active else 'disabled' }}">{{ 'активен' if plan.is_active else 'выключен' }}</span></td></tr>{% else %}<tr><td colspan="5">Тарифы пока не созданы.</td></tr>{% endfor %}</tbody></table></div>
+      <h3>Последние изменения подписок</h3><div class="table-wrap"><table><thead><tr><th>Пользователь</th><th>Статус</th><th>Начало</th><th>Окончание</th><th>Подтверждение</th></tr></thead><tbody>{% for subscription in subscriptions %}<tr><td>{{ subscription.user.display_name }}</td><td><span class="state {{ subscription.status }}">{{ subscription.status }}</span></td><td>{{ subscription.starts_at.strftime('%d.%m.%Y') }}</td><td>{{ subscription.ends_at.strftime('%d.%m.%Y') }}</td><td>{% if subscription.confirmed_at %}вручную{% else %}<details><summary class="button small">Подтвердить</summary><form method="post" action="/settings/billing/subscriptions/{{ subscription.id }}/confirm" class="stack"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>Ваш пароль<input type="password" name="acting_password" required></label><label>TOTP<input name="acting_totp" required></label><button class="button" type="submit">Подтвердить вручную</button></form></details>{% endif %}</td></tr>{% else %}<tr><td colspan="5">История появится после создания или продления подписки.</td></tr>{% endfor %}</tbody></table></div>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

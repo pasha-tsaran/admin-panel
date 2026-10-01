@@ -1,0 +1,34 @@
+[Unit]
+Description=Kenai VPN privileged helper
+After=network-online.target xray.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=kenai-vpn
+EnvironmentFile=/etc/kenai-vpn/helper.env
+ExecStart=/opt/kenai-vpn/venv/bin/kenai-vpn-helper
+Restart=on-failure
+RestartSec=5s
+RuntimeDirectory=kenai-vpn
+RuntimeDirectoryMode=0750
+StateDirectory=kenai-vpn-helper
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/usr/local/etc/xray /var/lib/kenai-vpn-helper /run/kenai-vpn
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
