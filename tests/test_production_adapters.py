@@ -183,8 +183,8 @@ def test_amneziawg_uses_independent_pool_binary_and_obfuscation(tmp_path: Path) 
     assert "Jc = 7" in credential.client_material
     assert "H4 = 400000000-499999999" in credential.client_material
     assert "I1 = <b 0x170303><r 32><t>" in credential.client_material
-    assert any(command[0] == "C:\\fake\\awg-quick.exe" for command in executor.commands)
-    assert any(command[0] == "C:\\fake\\awg.exe" for command in executor.commands)
+    assert any(command[0] == str(Path("C:/fake/awg-quick.exe")) for command in executor.commands)
+    assert any(command[0] == str(Path("C:/fake/awg.exe")) for command in executor.commands)
 
 
 def test_amneziawg_rejects_multiline_interface_parameter(tmp_path: Path) -> None:

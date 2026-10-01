@@ -30,6 +30,7 @@ def test_render_complete_ingress_and_exit_configs(tmp_path: Path) -> None:
         ),
         encoding="utf-8",
     )
+    ingress_spec.chmod(0o600)
     assert render_cascade_ingress_base(ingress_spec, ingress_output, "WRITE") == 0
     assert (
         json.loads(ingress_output.read_text(encoding="utf-8"))["outbounds"][0]["protocol"]
@@ -53,6 +54,7 @@ def test_render_complete_ingress_and_exit_configs(tmp_path: Path) -> None:
         ),
         encoding="utf-8",
     )
+    exit_spec.chmod(0o600)
     assert render_cascade_exit(exit_spec, exit_output, "WRITE") == 0
     reality = json.loads(exit_output.read_text(encoding="utf-8"))["inbounds"][0]["streamSettings"][
         "realitySettings"
@@ -76,5 +78,6 @@ def test_render_refuses_unknown_secret_spec_fields(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
+    spec.chmod(0o600)
     assert render_cascade_ingress_base(spec, tmp_path / "output.json", "WRITE") == 1
     assert not (tmp_path / "output.json").exists()
